@@ -1,0 +1,89 @@
+name: Build Windows Executable
+
+# Quand déclencher ce workflow ?
+# - Sur une release publiée → compile et attache le .exe à la release
+# - Manuellement via l'onglet "Actions" sur GitHub → utile pour tester
+on:
+  release:
+    types: [published]
+  workflow_dispatch:  # bouton manuel sur GitHub
+
+jobs:
+  build:
+    name: Build on Windows
+    runs-on: windows-latest
+
+    steps:
+      # 1. Récupérer le code du repo
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2. Installer Python 3.12 (stable, supporté par PyInstaller)
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      # 3. Installer les dépendances
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      # 4. Lancer les tests pour s'assurer que tout est vert
+      - name: Run tests
+        run: |
+          python tests/test_engine_v3.py
+          python tests/test_v02_features.py
+          python tests/test_v03_features.py
+          python tests/test_v04_exif.py
+          python tests/test_v05_updater.py
+          python tests/test_v06_github.py
+          python tests/test_v08_templates_store.py
+          python tests/test_v09_logos_store.py
+
+      # 5. Compiler avec PyInstaller
+      # Le .spec produit un dossier 'dist/Printou/' avec Printou.exe + ses dépendances
+      - name: Build with PyInstaller
+        run: |
+          pyinstaller build_tools/printou.spec --noconfirm --clean
+
+      # 6. Récupérer la version depuis le code (pour nommer le ZIP)
+      - name: Get version
+        id: get_version
+        shell: pwsh
+        run: |
+          $version = python -c "import printou; print(printou.__version__)"
+          echo "VERSION=$version" >> $env:GITHUB_OUTPUT
+          echo "Version detectee : $version"
+
+      # 7. Créer le ZIP de distribution
+      # On zip le dossier 'dist/Printou' qui contient l'exe + tout le runtime
+      - name: Create distribution ZIP
+        shell: pwsh
+        run: |
+          $version = "${{ steps.get_version.outputs.VERSION }}"
+          $zipName = "Printou_v${version}_windows.zip"
+          Compress-Archive -Path "dist/Printou/*" -DestinationPath $zipName -CompressionLevel Optimal
+          echo "ZIP cree : $zipName"
+          dir $zipName
+
+      # 8. Uploader le ZIP comme asset de la release (si c'est un trigger 'release')
+      - name: Upload ZIP to release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: Printou_v${{ steps.get_version.outputs.VERSION }}_windows.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # 9. Pour le déclenchement manuel : uploader comme artifact (téléchargeable depuis l'onglet Actions)
+      - name: Upload ZIP as artifact (manual run)
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Printou_windows_${{ steps.get_version.outputs.VERSION }}
+          path: Printou_v${{ steps.get_version.outputs.VERSION }}_windows.zip
+          retention-days: 30
