@@ -1,0 +1,359 @@
+"""
+Thème visuel Printou pour PySide6.
+
+Palette inspirée de la charte graphique fournie par Hervé :
+- Nuit       #111827
+- Ardoise    #1F2937
+- Anthracite #0F172A
+- Bleu pétrole #0F4C5C
+- Turquoise doux #2AB6B5
+- Blanc cassé #F3F4F6
+- Sable      #C8B8A6
+
+Typo : Segoe UI (présent par défaut sur Windows 10/11)
+"""
+
+from PySide6.QtGui import QColor, QFont, QPalette
+from PySide6.QtWidgets import QApplication
+
+
+class Colors:
+    NUIT = "#111827"
+    ARDOISE = "#1F2937"
+    ANTHRACITE = "#0F172A"
+    BLEU_PETROLE = "#0F4C5C"
+    TURQUOISE = "#2AB6B5"
+    TURQUOISE_DARK = "#229A99"
+    BLANC = "#F3F4F6"
+    SABLE = "#C8B8A6"
+
+    # Sémantiques
+    BG = NUIT
+    SURFACE = ARDOISE
+    SURFACE_ELEVATED = "#2A3447"
+    BORDER = "#2D3748"
+    ACCENT = TURQUOISE
+    ACCENT_HOVER = TURQUOISE_DARK
+    TEXT = BLANC
+    TEXT_DIM = "#9CA3AF"
+    TEXT_MUTED = "#6B7280"
+    SUCCESS = "#10B981"
+    WARNING = "#F59E0B"
+    ERROR = "#EF4444"
+
+
+# QSS principal
+STYLESHEET = f"""
+/* ---- Base ---- */
+QWidget {{
+    background: {Colors.BG};
+    color: {Colors.TEXT};
+    font-family: "Segoe UI", "Inter", sans-serif;
+    font-size: 13px;
+}}
+
+QMainWindow, QDialog {{
+    background: {Colors.BG};
+}}
+
+/* ---- Boutons ---- */
+QPushButton {{
+    background: {Colors.SURFACE};
+    color: {Colors.TEXT};
+    border: 1px solid {Colors.BORDER};
+    border-radius: 6px;
+    padding: 8px 14px;
+    font-weight: 500;
+}}
+QPushButton:hover {{
+    background: {Colors.SURFACE_ELEVATED};
+    border-color: {Colors.ACCENT};
+}}
+QPushButton:pressed {{
+    background: {Colors.BORDER};
+}}
+QPushButton:disabled {{
+    color: {Colors.TEXT_MUTED};
+    background: {Colors.SURFACE};
+}}
+
+QPushButton[primary="true"] {{
+    background: {Colors.ACCENT};
+    color: {Colors.BG};
+    border: none;
+    font-weight: 600;
+}}
+QPushButton[primary="true"]:hover {{
+    background: {Colors.ACCENT_HOVER};
+}}
+QPushButton[primary="true"]:disabled {{
+    background: {Colors.BORDER};
+    color: {Colors.TEXT_MUTED};
+}}
+
+QPushButton[danger="true"] {{
+    background: {Colors.ERROR};
+    color: white;
+    border: none;
+}}
+
+/* ---- Champs texte ---- */
+QLineEdit, QTextEdit, QPlainTextEdit, QSpinBox, QDoubleSpinBox, QComboBox {{
+    background: {Colors.SURFACE};
+    color: {Colors.TEXT};
+    border: 1px solid {Colors.BORDER};
+    border-radius: 4px;
+    padding: 6px 8px;
+    selection-background-color: {Colors.ACCENT};
+    selection-color: {Colors.BG};
+}}
+QLineEdit:focus, QTextEdit:focus, QPlainTextEdit:focus,
+QSpinBox:focus, QDoubleSpinBox:focus, QComboBox:focus {{
+    border-color: {Colors.ACCENT};
+}}
+QComboBox::drop-down {{ border: none; width: 20px; }}
+QComboBox QAbstractItemView {{
+    background: {Colors.SURFACE_ELEVATED};
+    border: 1px solid {Colors.BORDER};
+    selection-background-color: {Colors.ACCENT};
+    selection-color: {Colors.BG};
+}}
+
+/* ---- Listes et tableaux ---- */
+QListView, QTreeView, QTableView {{
+    background: {Colors.SURFACE};
+    color: {Colors.TEXT};
+    border: 1px solid {Colors.BORDER};
+    border-radius: 4px;
+    alternate-background-color: {Colors.SURFACE_ELEVATED};
+    outline: none;
+}}
+QListView::item, QTreeView::item, QTableView::item {{
+    padding: 8px;
+    border-bottom: 1px solid {Colors.BORDER};
+}}
+QListView::item:hover, QTreeView::item:hover {{
+    background: {Colors.SURFACE_ELEVATED};
+}}
+QListView::item:selected, QTreeView::item:selected, QTableView::item:selected {{
+    background: {Colors.BLEU_PETROLE};
+    color: {Colors.TEXT};
+}}
+
+QHeaderView::section {{
+    background: {Colors.SURFACE_ELEVATED};
+    color: {Colors.TEXT};
+    padding: 6px 8px;
+    border: none;
+    border-bottom: 1px solid {Colors.BORDER};
+    font-weight: 600;
+}}
+
+/* ---- Labels et titres ---- */
+QLabel {{ background: transparent; }}
+QLabel[heading="true"] {{
+    font-size: 18px;
+    font-weight: 700;
+    color: {Colors.TEXT};
+    padding: 4px 0;
+}}
+QLabel[subheading="true"] {{
+    font-size: 14px;
+    font-weight: 600;
+    color: {Colors.TEXT_DIM};
+    padding: 2px 0;
+}}
+QLabel[muted="true"] {{
+    color: {Colors.TEXT_MUTED};
+    font-size: 12px;
+}}
+QLabel[success="true"] {{ color: {Colors.SUCCESS}; }}
+QLabel[warning="true"] {{ color: {Colors.WARNING}; }}
+QLabel[error="true"]   {{ color: {Colors.ERROR}; }}
+QLabel[accent="true"]  {{ color: {Colors.ACCENT}; font-weight: 600; }}
+
+/* ---- Group box ---- */
+QGroupBox {{
+    background: {Colors.SURFACE};
+    border: 1px solid {Colors.BORDER};
+    border-radius: 6px;
+    margin-top: 16px;
+    padding-top: 12px;
+    font-weight: 600;
+}}
+QGroupBox::title {{
+    subcontrol-origin: margin;
+    subcontrol-position: top left;
+    padding: 0 8px;
+    background: transparent;
+    color: {Colors.ACCENT};
+}}
+
+/* ---- Onglets ---- */
+QTabWidget::pane {{
+    background: {Colors.SURFACE};
+    border: 1px solid {Colors.BORDER};
+    border-radius: 4px;
+}}
+QTabBar::tab {{
+    background: {Colors.BG};
+    color: {Colors.TEXT_DIM};
+    padding: 8px 16px;
+    border: 1px solid {Colors.BORDER};
+    border-bottom: none;
+    border-top-left-radius: 4px;
+    border-top-right-radius: 4px;
+    margin-right: 2px;
+}}
+QTabBar::tab:selected {{
+    background: {Colors.SURFACE};
+    color: {Colors.TEXT};
+    border-color: {Colors.BORDER};
+    border-bottom-color: {Colors.SURFACE};
+}}
+QTabBar::tab:hover:!selected {{
+    background: {Colors.SURFACE_ELEVATED};
+    color: {Colors.TEXT};
+}}
+
+/* ---- Splitter ---- */
+QSplitter::handle {{
+    background: {Colors.BORDER};
+}}
+QSplitter::handle:horizontal {{ width: 1px; }}
+QSplitter::handle:vertical   {{ height: 1px; }}
+QSplitter::handle:hover {{ background: {Colors.ACCENT}; }}
+
+/* ---- Scrollbars ---- */
+QScrollBar:vertical {{
+    background: {Colors.BG};
+    width: 12px;
+    border: none;
+}}
+QScrollBar::handle:vertical {{
+    background: {Colors.SURFACE_ELEVATED};
+    border-radius: 6px;
+    min-height: 30px;
+}}
+QScrollBar::handle:vertical:hover {{ background: {Colors.BORDER}; }}
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{ height: 0; }}
+
+QScrollBar:horizontal {{
+    background: {Colors.BG};
+    height: 12px;
+    border: none;
+}}
+QScrollBar::handle:horizontal {{
+    background: {Colors.SURFACE_ELEVATED};
+    border-radius: 6px;
+    min-width: 30px;
+}}
+QScrollBar::handle:horizontal:hover {{ background: {Colors.BORDER}; }}
+QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {{ width: 0; }}
+
+/* ---- Menus et statusbar ---- */
+QMenuBar {{
+    background: {Colors.SURFACE};
+    color: {Colors.TEXT};
+    border-bottom: 1px solid {Colors.BORDER};
+}}
+QMenuBar::item {{
+    padding: 6px 12px;
+    background: transparent;
+}}
+QMenuBar::item:selected {{ background: {Colors.SURFACE_ELEVATED}; }}
+
+QMenu {{
+    background: {Colors.SURFACE_ELEVATED};
+    border: 1px solid {Colors.BORDER};
+    color: {Colors.TEXT};
+}}
+QMenu::item {{ padding: 6px 24px; }}
+QMenu::item:selected {{ background: {Colors.ACCENT}; color: {Colors.BG}; }}
+QMenu::separator {{ background: {Colors.BORDER}; height: 1px; margin: 4px; }}
+
+QStatusBar {{
+    background: {Colors.SURFACE};
+    color: {Colors.TEXT_DIM};
+    border-top: 1px solid {Colors.BORDER};
+}}
+
+/* ---- Slider ---- */
+QSlider::groove:horizontal {{
+    background: {Colors.SURFACE};
+    height: 6px;
+    border-radius: 3px;
+}}
+QSlider::handle:horizontal {{
+    background: {Colors.ACCENT};
+    width: 16px;
+    margin: -5px 0;
+    border-radius: 8px;
+}}
+QSlider::handle:horizontal:hover {{ background: {Colors.ACCENT_HOVER}; }}
+QSlider::sub-page:horizontal {{ background: {Colors.ACCENT}; border-radius: 3px; }}
+
+/* ---- Checkbox / Radio ---- */
+QCheckBox, QRadioButton {{ spacing: 8px; }}
+QCheckBox::indicator, QRadioButton::indicator {{
+    width: 16px; height: 16px;
+    background: {Colors.SURFACE};
+    border: 1px solid {Colors.BORDER};
+    border-radius: 3px;
+}}
+QCheckBox::indicator:hover, QRadioButton::indicator:hover {{ border-color: {Colors.ACCENT}; }}
+QCheckBox::indicator:checked, QRadioButton::indicator:checked {{
+    background: {Colors.ACCENT};
+    border-color: {Colors.ACCENT};
+}}
+QRadioButton::indicator {{ border-radius: 8px; }}
+
+/* ---- ProgressBar ---- */
+QProgressBar {{
+    background: {Colors.SURFACE};
+    border: 1px solid {Colors.BORDER};
+    border-radius: 4px;
+    text-align: center;
+    color: {Colors.TEXT};
+}}
+QProgressBar::chunk {{
+    background: {Colors.ACCENT};
+    border-radius: 3px;
+}}
+
+/* ---- Tooltips ---- */
+QToolTip {{
+    background: {Colors.SURFACE_ELEVATED};
+    color: {Colors.TEXT};
+    border: 1px solid {Colors.BORDER};
+    padding: 6px 10px;
+    border-radius: 4px;
+}}
+"""
+
+
+def apply_theme(app: QApplication) -> None:
+    """Applique le thème Printou à l'application."""
+    app.setStyle("Fusion")
+
+    # Police par défaut
+    font = QFont("Segoe UI", 9)
+    app.setFont(font)
+
+    # Palette Qt (utilisée par certains widgets natifs)
+    palette = QPalette()
+    palette.setColor(QPalette.Window, QColor(Colors.BG))
+    palette.setColor(QPalette.WindowText, QColor(Colors.TEXT))
+    palette.setColor(QPalette.Base, QColor(Colors.SURFACE))
+    palette.setColor(QPalette.AlternateBase, QColor(Colors.SURFACE_ELEVATED))
+    palette.setColor(QPalette.Text, QColor(Colors.TEXT))
+    palette.setColor(QPalette.Button, QColor(Colors.SURFACE))
+    palette.setColor(QPalette.ButtonText, QColor(Colors.TEXT))
+    palette.setColor(QPalette.Highlight, QColor(Colors.ACCENT))
+    palette.setColor(QPalette.HighlightedText, QColor(Colors.BG))
+    palette.setColor(QPalette.ToolTipBase, QColor(Colors.SURFACE_ELEVATED))
+    palette.setColor(QPalette.ToolTipText, QColor(Colors.TEXT))
+    app.setPalette(palette)
+
+    # Stylesheet
+    app.setStyleSheet(STYLESHEET)

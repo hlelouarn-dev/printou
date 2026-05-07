@@ -1,0 +1,144 @@
+"""Tests v0.3 : highlights/shadows + auto-contrast + crop ratio lock."""
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from PIL import Image
+
+from printou.core import Adjustments, apply_adjustments, auto_contrast_adjustments
+
+
+passed = 0
+failed = 0
+
+
+def check(condition, message):
+    global passed, failed
+    if condition:
+        passed += 1
+        print(f"  ✓ {message}")
+    else:
+        failed += 1
+        print(f"  ✗ {message}")
+
+
+def section(title):
+    print(f"\n=== {title} ===")
+
+
+# ============================================================
+section("Highlights / Shadows")
+# ============================================================
+
+def test_highlights_negative_darkens_lights():
+    img = Image.new("RGB", (10, 10), (220, 220, 220))  # zone très claire
+    out = apply_adjustments(img, Adjustments(highlights=-50))
+    r, _, _ = out.getpixel((5, 5))
+    check(r < 220, f"highlights=-50 sur clair (220) → {r} (assombrit)")
+
+
+def test_highlights_negative_does_not_affect_dark():
+    img = Image.new("RGB", (10, 10), (40, 40, 40))  # zone très sombre
+    out = apply_adjustments(img, Adjustments(highlights=-50))
+    r, _, _ = out.getpixel((5, 5))
+    # Highlights ne doit PAS toucher (ou très peu) les zones sombres
+    check(abs(r - 40) <= 5, f"highlights=-50 sur sombre (40) → {r} (peu de changement)")
+
+
+def test_shadows_positive_brightens_darks():
+    img = Image.new("RGB", (10, 10), (40, 40, 40))
+    out = apply_adjustments(img, Adjustments(shadows=+50))
+    r, _, _ = out.getpixel((5, 5))
+    check(r > 40, f"shadows=+50 sur sombre (40) → {r} (éclaircit)")
+
+
+def test_shadows_positive_does_not_affect_light():
+    img = Image.new("RGB", (10, 10), (220, 220, 220))
+    out = apply_adjustments(img, Adjustments(shadows=+50))
+    r, _, _ = out.getpixel((5, 5))
+    check(abs(r - 220) <= 5, f"shadows=+50 sur clair (220) → {r} (peu de changement)")
+
+
+def test_combined_highlights_shadows():
+    """Hautes -50 + Ombres +50 sur un dégradé doit aplatir le contraste."""
+    img = Image.new("RGB", (256, 1))
+    pixels = img.load()
+    for x in range(256):
+        pixels[x, 0] = (x, x, x)  # dégradé linéaire
+    out = apply_adjustments(img, Adjustments(highlights=-50, shadows=+50))
+    # Les extrêmes doivent s'être rapprochés
+    p0 = out.getpixel((0, 0))[0]
+    p255 = out.getpixel((255, 0))[0]
+    check(p0 > 0 and p255 < 255 and (p255 - p0) < 255,
+          f"degrade compresse : 0→{p0}, 255→{p255}, range={p255 - p0}")
+
+
+test_highlights_negative_darkens_lights()
+test_highlights_negative_does_not_affect_dark()
+test_shadows_positive_brightens_darks()
+test_shadows_positive_does_not_affect_light()
+test_combined_highlights_shadows()
+
+
+# ============================================================
+section("Auto-contraste")
+# ============================================================
+
+def test_auto_contrast_on_low_dynamic():
+    """Image avec dynamique réduite (gris 80-180) doit booster le contraste."""
+    img = Image.new("RGB", (100, 100))
+    pixels = img.load()
+    for y in range(100):
+        for x in range(100):
+            v = 80 + ((x + y) % 100)  # plage 80-180
+            pixels[x, y] = (v, v, v)
+    adj = auto_contrast_adjustments(img)
+    check(adj.contrast > 1.0, f"contraste boosté : {adj.contrast:.2f}")
+
+
+def test_auto_contrast_neutre_on_normal():
+    """Image avec dynamique normale (0-255) doit avoir des ajustements modérés."""
+    img = Image.new("RGB", (100, 100))
+    pixels = img.load()
+    for y in range(100):
+        for x in range(100):
+            v = (x + y) % 256
+            pixels[x, y] = (v, v, v)
+    adj = auto_contrast_adjustments(img)
+    # On accepte que contraste reste proche de 1.0
+    check(0.95 <= adj.contrast <= 1.10, f"contraste modéré : {adj.contrast:.2f}")
+
+
+test_auto_contrast_on_low_dynamic()
+test_auto_contrast_neutre_on_normal()
+
+
+# ============================================================
+section("Sérialisation Adjustments v0.3")
+# ============================================================
+
+def test_serialization_v3_fields():
+    adj = Adjustments(brightness=1.1, highlights=-30, shadows=+25, temperature=10)
+    d = adj.to_dict()
+    adj2 = Adjustments.from_dict(d)
+    check(adj2.highlights == -30 and adj2.shadows == 25, "highlights/shadows persistés")
+
+
+def test_back_compat_v01():
+    """Lire un dict v0.1 (sans highlights/shadows/temp) → valeurs neutres."""
+    old = {"brightness": 1.05, "contrast": 1.0, "saturation": 1.0, "sharpness": 1.0}
+    adj = Adjustments.from_dict(old)
+    check(adj.highlights == 0.0 and adj.shadows == 0.0 and adj.temperature == 0.0,
+          "rétro-compat v0.1 : champs absents = 0")
+
+
+test_serialization_v3_fields()
+test_back_compat_v01()
+
+
+# ============================================================
+print("\n" + "=" * 60)
+print(f" v0.3 : {passed} passés, {failed} échoués")
+print("=" * 60)
+sys.exit(0 if failed == 0 else 1)
